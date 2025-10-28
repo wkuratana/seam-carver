@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Compiled C/Cython
+*.so
+*.pyd
+*.dll
+
+# Cython-generated C file
