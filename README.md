@@ -14,4 +14,4 @@
 
 5. Run `pip install -e .` to install the project and all dependencies to your virtual environment! If everything runs without errors, you are good to go.
 
-6. Run `seam-carver` in the terminal → the terminal should print out `Hello from the seam_carver CLI!`.
+6. Run `seam-carver` in the terminal → the rudimentary seam carving algorithm will run on the asset specified in `cli.py`
