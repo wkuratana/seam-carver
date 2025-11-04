@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>  // calloc
 
+
 typedef struct Enpixel {
     double energy;  // Energy value
     int y;  // Vertical coordinates
@@ -11,43 +12,57 @@ typedef struct Enpixel {
     // TODO: Maybe use a separate path matrix instead of weakest_neighbor?
 } Enpixel;  // Energy pixel, used in energy matrix
 
-static inline Enpixel choose_weaker(Enpixel target_one, Enpixel target_two) {
+
+static inline Enpixel* get_weaker_pixel_ptr(
+    Enpixel* target_one, Enpixel* target_two) {
     /**
      * Returns target_one if weaker, returns target_two otherwise.
+     * 
+     * Returns pointers to the existing structs within the 
+     * main energy_matrix buffer
      */
-    if (target_one.energy < target_two.energy) {
+    if (target_one->energy < target_two->energy) {
         return target_one;
-    }
-    else {
+    } else {
         return target_two;
     }
-} 
+}
 
 static Enpixel* get_weakest_neighbor(
-    size_t h, size_t w, int grayscale_matrix[h][w], Enpixel target) {
+    size_t h, size_t w, Enpixel* energy_matrix, Enpixel target) {
     /**
      * Returns the weakest neighbor (from the prior row) of a pixel 
      * from the energy matrix.
      * 
      * Target cannot be in the first row.
      */
+    // Y coordinate of the prior row
+    size_t prev_y = target.y - 1;
+    Enpixel *n1, *n2, *n3;
+
+    // Macro to get 1D index for clarity
+    #define IDX(y, x) ((y) * w + (x))
+
     if (target.x == 0) {  // Left edge
-        // Two vertical neighbors: (y-1, 0) and (y-1, 1)
-        Enpixel zero_neighbor;
-        Enpixel pos_neighbor;
-        
+        n1 = &energy_matrix[IDX(prev_y, 0)];
+        n2 = &energy_matrix[IDX(prev_y, 1)];
+        return get_weaker_pixel_ptr(n1, n2);
     } 
     else if (target.x == w - 1) {  // Right edge
-        // Two vertical neighbors: (y-1, x-1) and (y-1, x)
-        Enpixel neg_neighbor;
-        Enpixel zero_neighbor;
+        n1 = &energy_matrix[IDX(prev_y, target.x - 1)];
+        n2 = &energy_matrix[IDX(prev_y, target.x)];
+        return get_weaker_pixel_ptr(n1, n2);
     }
     else {
-        // Three vertical neighbors: (y-1, x-1), (y-1, x), (y-1, x+1)
-        Enpixel neg_neighbor;
-        Enpixel zero_neighbor;
-        Enpixel pos_neighbor;
+        n1 = &energy_matrix[IDX(prev_y, target.x - 1)];
+        n2 = &energy_matrix[IDX(prev_y, target.x)];
+        n3 = &energy_matrix[IDX(prev_y, target.x + 1)];
+        
+        Enpixel* weaker = get_weaker_pixel_ptr(n1, n2);
+        weaker = get_weaker_pixel_ptr(weaker, n3);
+        return weaker;
     }
+    #undef IDX
 }
 
 static double calculate_energy(
@@ -85,7 +100,7 @@ static double calculate_energy(
 }
 
 static struct Enpixel* get_seam(
-    size_t h, size_t w, int grayscale_matrix[h][w]) {
+    size_t h, size_t w, int grayscale_matrix[h][w], Enpixel* energy_matrix) {
     /**
      * Returns an optimal seam (array) of pixels to be carved.
      * 
@@ -93,17 +108,6 @@ static struct Enpixel* get_seam(
      * using sobel operators. Then, that energy is summed with the lowest
      * energy of neighboring pixels of the prior row.
      */
-
-    // TODO: Probably move the energy_matrix allocation out of this function
-    // so it isn't responsible for freeing up the memory (it'll be reused)
-    // Also calloc can probably just be malloc
-
-    // Matrix that will store energy pixels that will determine seam; 1D array
-    Enpixel* energy_matrix = calloc(h * w, sizeof(Enpixel));
-    if (energy_matrix == NULL) {
-        perror("Failed to allocate energy_matrix.");
-        return NULL;
-    }
     // Seam of energy pixels to be carved
     Enpixel* seam = calloc(h, sizeof(Enpixel));
     if (seam == NULL) {
@@ -112,18 +116,70 @@ static struct Enpixel* get_seam(
         return NULL; 
     }
 
+    #define IDX(y, x) ((y) * w + (x))
+    
     for (size_t i = 0; i < h; i++) {
         for (size_t j = 0; j < w; j++) {  // For each pixel
-            Enpixel pixel = {0, i, j, NULL};
-            pixel.energy = calculate_energy(
-                h, w, grayscale_matrix, pixel);
-            energy_matrix[i * w + j] = pixel;
+            Enpixel* current_pixel_ptr = &energy_matrix[IDX(i, j)];
+
+            current_pixel_ptr->y = i;
+            current_pixel_ptr->x = j;
+            current_pixel_ptr->weakest_neighbor = NULL;
+
+            current_pixel_ptr->energy = calculate_energy(
+                h, w, grayscale_matrix, *current_pixel_ptr);
+
             if (i > 0) {  // If not on first row (there are previous neighbors)
-                pixel.weakest_neighbor = get_weakest_neighbor(
-                    h, w, grayscale_matrix, pixel);
+                current_pixel_ptr->weakest_neighbor = get_weakest_neighbor(
+                    h, w, energy_matrix, *current_pixel_ptr);
+                current_pixel_ptr->energy += (
+                    current_pixel_ptr->weakest_neighbor->energy);
             }
-            // Update energy            
+            // Update energy
         }
     }
+    
+    // Get weakest pixel of last row; the energies of the pixels in the 
+    // last row be have the sum of all energy from the weakest seam 
+    // ending at said pixels
+    Enpixel* weakest = &energy_matrix[IDX(h - 1, 0)]; 
+    for (size_t j = 1; j < w; j++) {
+        Enpixel* pixel_ptr = &energy_matrix[IDX(h - 1, j)];
+        if (pixel_ptr->energy < weakest->energy) {
+            weakest = pixel_ptr;
+        }
+    }
+    Enpixel* current_seam_pixel_ptr = weakest;
+    seam[h - 1] = *current_seam_pixel_ptr; // Copy struct values into seam
+
+    for (size_t i = 1; i < h; i++) {
+        // Traverse up the chain using the stored pointer links
+        current_seam_pixel_ptr = current_seam_pixel_ptr->weakest_neighbor; 
+        seam[h - 1 - i] = *current_seam_pixel_ptr;
+    }
+
+    #undef IDX
+
     return seam;
+}
+
+void carve(
+    size_t h, size_t w, int grayscale_matrix[h][w], size_t target_width) {
+    // TODO: Change matrix passed to be the rgb matrix, then turn it grayscale
+    size_t current_width = w;
+    // Matrix that will store energy pixels that will determine seam; 1D array
+    Enpixel* energy_matrix = calloc(h * w, sizeof(Enpixel));
+    if (energy_matrix == NULL) {
+        perror("Failed to allocate energy_matrix.");
+        return NULL;
+    }
+    while (current_width > target_width) {
+        Enpixel* seam = get_seam(h, w, grayscale_matrix[h][w], energy_matrix);
+        // TODO: Remove seam from rgb matrix
+        // TODO: Remove seam from energy_matrix and update energy values
+        // along seam neighbors
+        current_width--;
+        free(seam);
+    }
+    free(energy_matrix);
 }
