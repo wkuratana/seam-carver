@@ -14,3 +14,6 @@ dist/
 *.dll
 
 # Cython-generated C file
+
+# VSCode
+.vscode/
