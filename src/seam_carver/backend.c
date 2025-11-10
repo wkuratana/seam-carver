@@ -6,9 +6,9 @@
 
 
 /* Indexing Macros */
-// Use w for grayscale_matrix, current_width for energy_matrix
+// Use `w` for grayscale_matrix, current_width for energy_matrix (with IDX)
 #define IDX(y, x, w) ((y) * w + (x))  // For grayscale, energy
-#define RGB_IDX(y, x, w) (((y) * (w) + (x)) * 3)
+#define RGB_IDX(y, x, w) (((y) * (w) + (x)) * 3)  // For RGB
 
 
 /* Struct */
@@ -38,7 +38,7 @@ static inline Enpixel* get_weaker_pixel_ptr(
      * Returns target_one if weaker, returns target_two otherwise.
      * 
      * Returns pointers to the existing structs within the 
-     * main energy_matrix buffer
+     * main energy_matrix buffer.
      */
     if (target_one->energy < target_two->energy) {
 
@@ -207,6 +207,39 @@ static Enpixel* get_seam(
     return seam;
 }
 
+static void remove_seam(
+    size_t h, size_t w, size_t current_width, 
+    Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
+    /**
+     * Removes the pixels at the coordinates specified by the Enpixels in the
+     * seam.
+     */
+    for (size_t i = 0; i < h; i++) {
+        Enpixel pixel = seam[i];
+        size_t y = pixel.y;
+        size_t x = pixel.x;
+
+        // Shift all pixels from (x + 1) to (current_width - 1).
+        size_t num_pixels_to_move = current_width - 1 - x;
+
+        if (num_pixels_to_move > 0) {
+            // Pointer to the destination (the pixel to be removed)
+            int* gray_dest = &grayscale_matrix[IDX(y, x, w)];
+            // Pointer to the source (pixel to the right)
+            int* gray_src = &grayscale_matrix[IDX(y, x + 1, w)];
+            memmove(
+                gray_dest, gray_src, num_pixels_to_move * sizeof(int));
+
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x, w)];
+            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x + 1, w)];
+            
+            // (num_pixels_to_move * 3) is the number of bytes
+            memmove(
+                rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
+        }
+    }
+}
+
 int carve(
     size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) {
     /**
@@ -216,6 +249,8 @@ int carve(
      * If used with a Cython script, any image passed will point directly
      * to the NumPy array's data buffer. This function shuffles the data 
      * around inside said buffer.
+     * 
+     * Remember to slice the array in Python to see the proper results!
      * 
      * Note that `w` is original width.
      */
@@ -234,6 +269,7 @@ int carve(
         Enpixel* energy_matrix = calloc(h * current_width, sizeof(Enpixel));
         if (energy_matrix == NULL) {
             perror("Failed to allocate energy_matrix.");
+            free(grayscale_matrix);
 
             return -1;
         }
@@ -244,10 +280,13 @@ int carve(
         if (seam == NULL) {
             perror("Failed to allocate seam.");
 
+            free(grayscale_matrix);
+            free(energy_matrix);
             return -1;
         }
-        // TODO: Remove seam from rgb matrix
-        // TODO: Remove seam from grayscale matrix
+        // Remove the seam from the grayscale matrix and the original matrix
+        remove_seam(
+            h , w, current_width, seam, grayscale_matrix, rgb_matrix);
         free(energy_matrix);
         free(seam);
         current_width--;
