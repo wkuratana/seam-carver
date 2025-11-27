@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 /* Indexing Macros */
 // Use `w` for grayscale_matrix, current_width for energy_matrix (with IDX)
-#define IDX(y, x, w) ((y) * w + (x))  // For grayscale, energy
+#define IDX(y, x, w) ((y) * (w) + (x))  // For grayscale, energy
 #define RGB_IDX(y, x, w) (((y) * (w) + (x)) * 3)  // For RGB
 
 

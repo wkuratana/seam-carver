@@ -4,11 +4,11 @@ from Cython.Build import cythonize
 import numpy
 
 
-# TODO: This is a temp extension for testing the build
 extensions = [
     Extension(
-        "seam_carver.test_build", 
-        sources=["src/seam_carver/backend.c"],
+        name='seam_carver.wrapper', 
+        sources=[
+            'src/seam_carver/wrapper.pyx'],
         include_dirs=[numpy.get_include()]
     )
 ]

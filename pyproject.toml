@@ -3,12 +3,13 @@ requires = [
     "setuptools>=61.0",
     "Cython>=3.0.0",
     "numpy>=1.20.0"
+    "Pillow"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "Rambutan"
-version = "0.0.1"
+version = "0.0.2"
 authors = [ 
     {name="Wren C. Kuratana", email="wren@wrenckuratana.com"}, 
     {name="Machiavelli Merkle-Ward", email="mmerklew@macalester.edu"} 
