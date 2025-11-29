@@ -13,6 +13,16 @@ extensions = [
     )
 ]
 
+wrapper = [
+    Extension(
+        "wrapper",
+        ["wrapper.pyx"],
+        libraries=[]
+    )
+]
+
+#TODO: Figure out how to make this non-local
+
 setup(
     ext_modules=cythonize(extensions)
 )
