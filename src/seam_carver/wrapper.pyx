@@ -20,13 +20,13 @@ def c_carve(image, int target_width):
     # Handle Grayscale (2D)
     if image.ndim == 2:
         is_grayscale = 1
-        process_image = np.dstack((image, image, image)) # Creates a copy
+        process_image = np.dstack((image, image, image))  # Creates copies
     elif image.ndim == 3:
         process_image = np.ascontiguousarray(image, dtype=np.uint8)
     else:
         raise ValueError("Image must be 2D (grayscale) or 3D (RGB).")
 
-    # Create the memory view on the array being modified
+    # Can't take address of a Python object, so create memory view
     cdef unsigned char[:, :, ::1] img_view = process_image
 
     cdef size_t h = img_view.shape[0]
