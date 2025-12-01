@@ -1,4 +1,4 @@
-# Audio Seam Carver
+# Image Seam Carver
 
 This project is still in development!
 

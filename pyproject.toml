@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Rambutan"
-version = "0.0.2"
+version = "0.0.3"
 authors = [ 
     {name="Wren C. Kuratana", email="wren@wrenckuratana.com"}, 
     {name="Machiavelli Merkle-Ward", email="mmerklew@macalester.edu"} 
