@@ -1,32 +1,53 @@
+# Imports
+import numpy as np
+cimport numpy as np
 from libc.stdint cimport uint8_t
+
+
 cdef extern from "backend.h":
-    int carve(size_t h, size_t w, uint8_t rgb_matrix, size_t target_width)
+    int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width)
 
-def carve(h:size_t, w:size_t, rgb_matrix:uint8_t,target_width:size_t) -> int:
-    return carve(h,w,rgb_matrix,target_width)
 
-#these may be unnecessary
+def c_carve(image, int target_width):
+    # Validation
+    if target_width >= image.shape[1]:
+        raise ValueError("Target width must be smaller than current width.")
+    if image.dtype != np.uint8:
+        raise TypeError("Image must be of type uint8 (0-255).")
+        
+    cdef bint is_grayscale = 0
+    
+    # Handle Grayscale (2D)
+    if image.ndim == 2:
+        is_grayscale = 1
+        process_image = np.dstack((image, image, image)) # Creates a copy
+    elif image.ndim == 3:
+        process_image = np.ascontiguousarray(image, dtype=np.uint8)
+    else:
+        raise ValueError("Image must be 2D (grayscale) or 3D (RGB).")
 
-cdef struct Enpixel:
-    double energy
-    int x
-    int y
-    #figure out how to declare structs for weakest_neighbor
+    # Create the memory view on the array being modified
+    cdef unsigned char[:, :, ::1] img_view = process_image
 
-cdef int clamp(int value, int min, int max)
+    cdef size_t h = img_view.shape[0]
+    cdef size_t w = img_view.shape[1]
+   
+    # Pass the pointer
+    cdef int result = carve(
+        h, w, 
+        <uint8_t*>&img_view[0, 0, 0], 
+        <size_t>target_width
+    )
+    
+    if result != 0:
+        raise RuntimeError("C function 'carve()' failed.")
 
-cdef Enpixel get_weaker_pixel_ptr(Enpixel* target_one, Enpixel* target_two)
+    # Slice to :target_width to hide the garbage data on the right
+    output = process_image[:, :target_width, :]
 
-cdef void convert_rgb_to_grayscale(size_t h, size_t w, uint8_t* rgb_matrix, int* grayscale_matrix)
-    #figure out how to wrap the array
-
-cdef Enpixel* get_weakest_neighbor(size_t h, size_t current_width, Enpixel* energy_matrix, Enpixel target)
-
-cdef double calculate_energy(size_t h, size_t w, size_t current_width, int* grayscale_matrix, Enpixel target)
-
-cdef Enpixel* set_energy_matrix(size_t h, size_t w, size_t current_width, int* grayscale_matrix, Enpixel* energy_matrix)
-
-cdef Enpixel* get_seam(size_t h, size_t current_width, Enpixel* energy_matrix)
-
-cdef void remove_seam(size_t h, size_t w, size_t current_width, Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix)
-    #figure out how to wrap the array
+    # Convert back to 2D if the input was grayscale
+    if is_grayscale:
+        return output[:, :, 0]
+    
+    
+    return output
