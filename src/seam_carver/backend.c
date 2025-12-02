@@ -41,13 +41,9 @@ static inline Enpixel* get_weaker_pixel_ptr(
      * Returns pointers to the existing structs within the 
      * main energy_matrix buffer.
      */
-    if (target_one->energy < target_two->energy) {
-
-        return target_one;
-    } else {
-
-        return target_two;
-    }
+    if (target_one->energy < target_two->energy) return target_one;
+    
+    return target_two;
 }
 
 static void convert_rgb_to_grayscale(
