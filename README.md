@@ -9,3 +9,5 @@ This project is still in development!
 2. Run `pip install -e .` to install the project and all dependencies to your virtual environment! If everything runs without errors, you are good to go.
 
 3. Run `seam-carver`—the test file will be run!
+
+.\venv\Scripts\activate.ps1
