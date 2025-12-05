@@ -4,11 +4,12 @@ import time
 import typer
 from typing_extensions import Annotated
 from PIL import Image
+from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from .wrapper import c_carve  # type: ignore
 
 
-app = typer.Typer()
+app = typer.Typer(add_completion=False)
 
 @app.command()
 def adjust(
@@ -30,7 +31,7 @@ def adjust(
         height, width, dimension = input_img.shape
         
         if width != target_width:
-            print(f"Adjusting the width of {input_file}")
+            print(f"Adjusting the width of [yellow]{input_file}[/yellow]")
             
             if width > target_width:
                 start_time = time.time()
@@ -48,9 +49,13 @@ def adjust(
                 
                 result_img_pil = Image.fromarray(result_img)
                 result_img_pil.save(output_file)
+
+                minutes = int(elapsed // 60)
+                seconds = int(round(elapsed % 60))
+
                 print(
-                    f"Adjusted image successfully saved to {output_file} "
-                    f"in {elapsed:.0f}s")
+                    f"Adjusted image successfully saved to [yellow]{output_file}[/yellow]"
+                    f" in {minutes:02d}:{seconds:02d}")
                 
             elif width < target_width:
                 # TODO: Call expand width function once implemented

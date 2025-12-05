@@ -16,11 +16,11 @@ After installing `seam-carver`, run:
 ```
 adjust <input_file> <output_file> <target_width>
 ```
-Replace <input_file> with an exact path to the image you want to resize, including the file extension.
+Replace `<input_file>` with an exact path to the image you want to resize, including the file extension.
 
-Replace <output_file> with an exact path to where you want to image to be outputted, including the file extension.
+Replace `<output_file>` with an exact path to where you want to image to be outputted, including the file extension.
 
-Replace <target_width> with the exact pixel width you would like to change the width of the <input_file> to.
+Replace `<target_width>` with the exact pixel width you would like to change the width of the `<input_file>` to.
 
 > [!NOTE]  
 > If the target width is smaller than the width of the input file, the image will be carved (width will be reduced).
