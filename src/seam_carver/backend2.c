@@ -205,7 +205,7 @@ static Enpixel* get_seam(
 }
 
 /*TODO CREATE SEAM*/
-static void remove_seam(
+static void add_seam(
     size_t h, size_t w, size_t current_width, 
     Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
     /**
@@ -217,20 +217,19 @@ static void remove_seam(
         size_t y = pixel.y;
         size_t x = pixel.x;
 
-        // Shift all pixels from (x + 1) to (current_width - 1).
-        size_t num_pixels_to_move = current_width - 1 - x;
+        // Shift all pixels from (x + 1) to (x + 2).
+        size_t num_pixels_to_move = current_width - x; //check if these numbers are right
 
         if (num_pixels_to_move > 0) {
-            // Pointer to the destination (the pixel to be removed)
-            int* gray_dest = &grayscale_matrix[IDX(y, x, w)];
-            // Pointer to the source (pixel to the right)
-            int* gray_src = &grayscale_matrix[IDX(y, x + 1, w)];
+            // Pointer to the destination (the current width, one pixel larger than the image)
+            int* gray_dest = &grayscale_matrix[IDX(y, current_width, w)];
+            // Pointer to the source (the last pixel)
+            int* gray_src = &grayscale_matrix[IDX(y, current_width-1, w)];
             memmove(
                 gray_dest, gray_src, num_pixels_to_move * sizeof(int));
 
-            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x, w)];
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x + 2, w)];
             uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x + 1, w)];
-            
             // (num_pixels_to_move * 3) is the number of bytes
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
@@ -238,8 +237,14 @@ static void remove_seam(
     }
 }
 
+void interpolate(size_t h, size_t w, size_t current_width, 
+    Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
+        //TODO figure this out???
+    
+}
+
 /*TODO CREATE SEAM*/
-int carve(
+int expand(
     size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) {
     /**
      * Carves out low-energy seams from an image matrix until its width
@@ -284,14 +289,18 @@ int carve(
             return -1;
         }
         // Remove the seam from the grayscale matrix and the original matrix
-        remove_seam(
+        add_seam(
             h , w, current_width, seam, grayscale_matrix, rgb_matrix);
         free(energy_matrix);
         free(seam);
-        current_width--;
+        current_width++;
     }
 
     free(grayscale_matrix);
 
     return 0;
+}
+
+int enlarge(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t target_height){
+
 }
