@@ -5,7 +5,7 @@ from libc.stdint cimport uint8_t
 
 
 cdef extern from "backend.h":
-    int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width)
+    int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
 
 
 def c_carve(image, int target_width):
@@ -31,13 +31,15 @@ def c_carve(image, int target_width):
 
     cdef size_t h = img_view.shape[0]
     cdef size_t w = img_view.shape[1]
+    cdef uint8_t* img_ptr = <uint8_t*>&img_view[0, 0, 0]
+    cdef size_t tw = <size_t>target_width
    
-    # Pass the pointer
-    cdef int result = carve(
-        h, w, 
-        <uint8_t*>&img_view[0, 0, 0], 
-        <size_t>target_width
-    )
+    cdef int result
+    
+    # Release GIL during the C function call
+    # (Needed for time elapsed counter in CLI)
+    with nogil:
+        result = carve(h, w, img_ptr, tw)
     
     if result != 0:
         raise RuntimeError("C function 'carve()' failed.")
