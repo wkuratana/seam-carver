@@ -7,6 +7,9 @@ from libc.stdint cimport uint8_t
 cdef extern from "backend.h":
     int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
 
+cdef extern from "backend2.h":
+    int expand(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
+
 def _validate_image_type(image):
     """Raises error if image is the wrong type."""
     # Validation

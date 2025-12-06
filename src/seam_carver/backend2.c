@@ -217,7 +217,7 @@ static void add_seam(
         size_t y = pixel.y;
         size_t x = pixel.x;
 
-        // Shift all pixels from (x + 1) to (x + 2).
+        // Shift all pixels from (x + 1) to (x + 2), copy to the right of the seam.
         size_t num_pixels_to_move = current_width - x; //check if these numbers are right
 
         if (num_pixels_to_move > 0) {
@@ -225,22 +225,35 @@ static void add_seam(
             int* gray_dest = &grayscale_matrix[IDX(y, current_width, w)];
             // Pointer to the source (the last pixel)
             int* gray_src = &grayscale_matrix[IDX(y, current_width-1, w)];
+            // Move the pixels over by one to the right, copying over the seam.
             memmove(
-                gray_dest, gray_src, num_pixels_to_move * sizeof(int));
+                gray_dest, gray_src, num_pixels_to_move * sizeof(int));   
+                
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, current_width, w)];
+            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, current_width-1, w)];
 
-            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x + 2, w)];
-            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x + 1, w)];
             // (num_pixels_to_move * 3) is the number of bytes
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
+
+            //interpolate(h, w, grayscale_matrix, rgb_matrix, x+1, y); //input the added pixel next to the seam
         }
     }
 }
 
-void interpolate(size_t h, size_t w, size_t current_width, 
-    Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
-        //TODO figure this out???
-    
+void interpolate(size_t h, size_t w, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
+        size_t idx = RGB_IDX(x, y, w); //the new midpoint value
+        size_t idx1 = RGB_IDX(x-1, y, w); //the original seam pixel
+        size_t idx2 = RGB_IDX(x+1, y, w); //the original pixel to the right of the seam
+
+        int r = rgb_matrix[idx1+0];
+
+        grayscale_matrix[IDX(x, y, w)] = (int)(
+                0.299 * rgb_matrix[idx + 0] + // R
+                0.587 * rgb_matrix[idx + 1] + // G
+                0.114 * rgb_matrix[idx + 2]   // B
+            );
+        //how to 
 }
 
 /*TODO CREATE SEAM*/
@@ -293,7 +306,7 @@ int expand(
             h , w, current_width, seam, grayscale_matrix, rgb_matrix);
         free(energy_matrix);
         free(seam);
-        current_width++;
+        current_width++; //TODO check placement
     }
 
     free(grayscale_matrix);
@@ -302,5 +315,5 @@ int expand(
 }
 
 int enlarge(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t target_height){
-
+    //figure out bilinear interpolation
 }
