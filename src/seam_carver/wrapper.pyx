@@ -7,14 +7,14 @@ from libc.stdint cimport uint8_t
 cdef extern from "backend.h":
     int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
 
-
-def c_carve(image, int target_width):
+def _validate_image_type(image):
+    """Raises error if image is the wrong type."""
     # Validation
-    if target_width >= image.shape[1]:
-        raise ValueError("Target width must be smaller than current width.")
     if image.dtype != np.uint8:
         raise TypeError("Image must be of type uint8 (0-255).")
-        
+
+def _grayscale(image):
+    """Returns 1 if grayscale by default, 0 if not; returns process_image."""
     cdef bint is_grayscale = 0
     
     # Handle Grayscale (2D)
@@ -25,6 +25,16 @@ def c_carve(image, int target_width):
         process_image = np.ascontiguousarray(image, dtype=np.uint8)
     else:
         raise ValueError("Image must be 2D (grayscale) or 3D (RGB).")
+    
+    return (is_grayscale, process_image)
+
+def c_carve(image, int target_width):
+    # Specific to carve
+    if target_width >= image.shape[1]:
+        raise ValueError("Target width must be smaller than current width.")
+
+    _validate_image_type(image)
+    is_grayscale, process_image = _grayscale(image)
 
     # Can't take address of a Python object, so create memory view
     cdef unsigned char[:, :, ::1] img_view = process_image
