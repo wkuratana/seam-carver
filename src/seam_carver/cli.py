@@ -92,6 +92,7 @@ def adjust_audio(
         
         # Load audio file
         time_series, sample_rate = librosa.load(input_file, sr=None)
+        # Total samples / samples per second
         original_duration = len(time_series) / sample_rate
         
         if target_duration == original_duration:
@@ -118,6 +119,7 @@ def adjust_audio(
 
             # Normalize magnitude to 0-255 for carving (keep linear scale)
             # (Track max_val to restore volume later)
+            # Find the loudest moment in the song to make 255, silence becomes 0
             max_val = np.max(magnitude)
             mag_uint8 = (magnitude / max_val * 255).astype(np.uint8)
             
@@ -144,6 +146,7 @@ def adjust_audio(
                 task, description="Reconstructing audio...")
 
             # Recover carved magnitude
+            # Take 0-255 pixels and shrink them back to 0.0-1.0 decimals, and mult original volume
             carved_magnitude = (
                 result_img[:, :, 0].astype(np.float32) / 255.0) * max_val
 
@@ -157,10 +160,12 @@ def adjust_audio(
             stft_imag_stretched = np.array(
                 [np.interp(x_new, x_old, row) for row in np.imag(stft)])
             # Then combine to get the new phase angles
+            # Use interpolation to stretch/squish original timing to fit the new length
             carved_phase = np.angle(
                 stft_real_stretched + 1j * stft_imag_stretched)
             
             # Combine magnitude and phase 
+            # Magnitude * phase = complete sound
             carved_stft = carved_magnitude * np.exp(1j * carved_phase)
 
             # Inverse STFT
@@ -184,6 +189,91 @@ def adjust_audio(
         
     except Exception as e:
         print(f"[red]Error:[/red] Unable to adjust audio: {e}")
+
+@app.command()
+def bilinear_interpolation(
+        input_file: Annotated[str, typer.Argument(
+            help="Path to the input image file"
+        )],
+        output_file: Annotated[str, typer.Argument(
+            help="Path to save the carved output image file"
+        )],
+        target_width: Annotated[int, typer.Argument(
+            help="Target width for the carved image"
+        )],
+        target_height: Annotated[int, typer.Argument(
+            help="Target width for the carved image"
+        )],
+):
+    try:
+        print(f"Adjusting the width of [yellow]{input_file}[/yellow] (BLI)")
+
+        # Open the input file
+        input_img_pil = Image.open(input_file)
+        input_img = np.array(input_img_pil)
+        height, width, dimension = input_img.shape
+
+        if target_width == width:
+            print(
+                "[red]Error:[/red] Target width must not equal current width")
+            return
+        
+        start_time = time.time()
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
+            transient=True,
+        ) as progress:
+            progress.add_task(
+                description="Adjusting...", total=None)
+                
+            x_scale_factor = width / target_width
+            y_scale_factor = height / target_height
+
+            output = np.zeros(target_width, target_height)  # type: ignore
+
+            for y in range(target_height):
+                for x in range(target_width):
+                    xOrigin = x * x_scale_factor
+                    yOrigin = y * y_scale_factor
+
+                    #Coordinates, clamping for the edges
+                    x1 = int(xOrigin)
+                    y1 = int(yOrigin)
+                    x2 = min(x1+1, width-1) 
+                    y2 = min(y1+1, height-1) 
+
+                    # Interpolation Coefficients
+                    alpha = xOrigin - x1
+                    beta = yOrigin - y1
+
+                    for z in range(dimension):
+                        output[y,x,z] = (
+                            (1-alpha)(1-beta)(input_img[y1,x1,z]) 
+                            + alpha(x1)(1-beta)(input_img[y1,x2,z]) 
+                            + (alpha*beta)(y1,x1,z)
+                            + (1-alpha)(beta)(y2,x1,z)
+                        )
+
+        result_img_pil = Image.fromarray(output)
+        result_img_pil.save(output_file)
+        
+        elapsed = time.time() - start_time
+
+        minutes = int(elapsed // 60)
+        seconds = int(round(elapsed % 60))
+
+        print(
+            "[green]Success![/green] Image saved to"
+            f" [yellow]{output_file}[/yellow]")
+        print(f"Processing time: {minutes:02d}:{seconds:02d}")
+
+    except Exception as e:
+        print(f"[red]Error:[/red] Unable to adjust image (BLI): {e}")
+
+    return output
 
 def main():
     app()
