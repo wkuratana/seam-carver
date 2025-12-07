@@ -14,7 +14,7 @@ This project is still in development!
 
 After installing `seam-carver`, run:
 ```
-adjust <input_file> <output_file> <target_width>
+seam-carver adjust <input_file> <output_file> <target_width>
 ```
 Replace `<input_file>` with an exact path to the image you want to resize, including the file extension.
 
@@ -30,5 +30,14 @@ If you are ever unsure of what arguments to pass, type `adjust --help`.
 
 ### Example Usage
 ```
-adjust assets/surfer.jpg assets/narrow_surfer.jpg 1600
+seam-carver adjust assets/surfer.jpg assets/narrow_surfer.jpg 1600
 ```
+
+### Audio
+
+Adjust audio with:
+```
+seam-carver adjust-audio <input_file> <output_file> <target_length>
+```
+
+Ensure `<input_file>` is a `.wav` file, and `<target_length>` is in seconds.
