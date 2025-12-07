@@ -67,40 +67,40 @@ def c_carve(image, int target_width):
     
     return output
 
+def c_expand(image, int target_width):
+    # Specific to expand
+    if target_width <= image.shape[1]:
+        raise ValueError("Target width must be larger than current width.")
 
-#This is the breaking change
-# def c_expand(image, int target_width):
-#     # Specific to expand
-#     if target_width <= image.shape[1]:
-#         raise ValueError("Target width must be larger than current width.")
+    pad_width = (image.shape[0], target_width, 3)
+    color_value = (255,255,255)
 
-#     _validate_image_type(image)
-#     is_grayscale, process_image = _grayscale(image)
+    image = np.pad(image, pad_width, mode='constant', constant_values=color_value)
 
-#     # Can't take address of a Python object, so create memory view
-#     cdef unsigned char[:, :, ::1] img_view = process_image
+    _validate_image_type(image)
+    is_grayscale, process_image = _grayscale(image)
 
-#     cdef size_t h = img_view.shape[0]
-#     cdef size_t w = img_view.shape[1]
-#     cdef uint8_t* img_ptr = <uint8_t*>&img_view[0, 0, 0]
-#     cdef size_t tw = <size_t>target_width
+    # Can't take address of a Python object, so create memory view
+    cdef unsigned char[:, :, ::1] img_view = process_image
+
+    cdef size_t h = img_view.shape[0]
+    cdef size_t w = img_view.shape[1]
+    cdef uint8_t* img_ptr = <uint8_t*>&img_view[0, 0, 0]
+    cdef size_t tw = <size_t>target_width
    
-#     cdef int result
+    cdef int result
     
-#     # Release GIL during the C function call
-#     # (Needed for time elapsed counter in CLI)
-#     with nogil:
-#         result = expand(h, w, img_ptr, tw)
+    # Release GIL during the C function call
+    # (Needed for time elapsed counter in CLI)
+    with nogil:
+        result = expand(h, w, img_ptr, tw)
     
-#     if result != 0:
-#         raise RuntimeError("C function 'carve()' failed.")
+    if result != 0:
+        raise RuntimeError("C function 'carve()' failed.")
 
-#     # Slice to :target_width to hide the garbage data on the right
-#     output = process_image[:, :target_width, :]
-
-#     # Convert back to 2D if the input was grayscale
-#     if is_grayscale:
-#         return output[:, :, 0]
+    # Convert back to 2D if the input was grayscale
+    if is_grayscale:
+        return image[:, :, 0]
     
     
-#     return output
+    return image

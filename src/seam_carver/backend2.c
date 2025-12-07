@@ -221,15 +221,15 @@ static void add_seam(
 
         if (num_pixels_to_move > 0) {
             // Pointer to the destination (the current width, one pixel larger than the image)
-            int* gray_dest = &grayscale_matrix[IDX(y, current_width, w)];
+            int* gray_dest = &grayscale_matrix[IDX(y, x+2, w)];
             // Pointer to the source (the last pixel)
-            int* gray_src = &grayscale_matrix[IDX(y, current_width-1, w)];
+            int* gray_src = &grayscale_matrix[IDX(y, x+1, w)];
             // Move the pixels over by one to the right, copying over the seam.
             memmove(
                 gray_dest, gray_src, num_pixels_to_move * sizeof(int));   
                 
-            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, current_width, w)];
-            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, current_width-1, w)];
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x+2, w)];
+            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x+1, w)];
 
             // (num_pixels_to_move * 3) is the number of bytes
             memmove(
@@ -315,8 +315,4 @@ int expand(
     free(grayscale_matrix);
 
     return 0;
-}
-
-int enlarge(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t target_height){
-    //implement?
 }
