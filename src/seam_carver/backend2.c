@@ -318,5 +318,5 @@ int expand(
 }
 
 int enlarge(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t target_height){
-    //figure out bilinear interpolation
+    //implement?
 }

@@ -8,6 +8,7 @@ from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from .wrapper import c_carve  # type: ignore
 # from .wrapper import c_expand  # type: ignore
+# from .BilinearInterpolation import bilinear_interpolation
 
 
 app = typer.Typer(add_completion=False)
