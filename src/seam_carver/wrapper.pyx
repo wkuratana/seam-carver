@@ -72,10 +72,9 @@ def c_expand(image, int target_width):
     if target_width <= image.shape[1]:
         raise ValueError("Target width must be larger than current width.")
 
-    pad_width = (image.shape[0], target_width, 3)
-    color_value = (255,255,255)
-
-    image = np.pad(image, pad_width, mode='constant', constant_values=color_value)
+    pad_width = target_width - image.shape[1]
+    pad_width_right = ((0, 0), (0, pad_width), (0, 0))
+    image = np.pad(image, pad_width=pad_width_right, mode='constant', constant_values=0)
 
     _validate_image_type(image)
     is_grayscale, process_image = _grayscale(image)
@@ -101,6 +100,6 @@ def c_expand(image, int target_width):
     # Convert back to 2D if the input was grayscale
     if is_grayscale:
         return image[:, :, 0]
-    
+
     
     return image

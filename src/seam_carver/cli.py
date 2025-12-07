@@ -9,7 +9,7 @@ from PIL import Image
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from .wrapper import c_carve  # type: ignore
-# from .wrapper import c_expand  # type: ignore
+from .wrapper import c_expand  # type: ignore
 # from .BilinearInterpolation import bilinear_interpolation
 
 
@@ -55,8 +55,7 @@ def adjust(
                 result_img = c_carve(input_img, target_width)
 
             elif width < target_width:
-                # result_img = c_expand(input_img, target_width)
-                return  # Temporary
+                result_img = c_expand(input_img, target_width)
 
         result_img_pil = Image.fromarray(result_img)
         result_img_pil.save(output_file)
@@ -202,7 +201,7 @@ def bilinear_interpolation(
             help="Target width for the carved image"
         )],
         target_height: Annotated[int, typer.Argument(
-            help="Target width for the carved image"
+            help="Target height for the carved image"
         )],
 ):
     try:
@@ -220,7 +219,7 @@ def bilinear_interpolation(
         
         start_time = time.time()
 
-        output = np.zeros(target_width, target_height)  # type: ignore
+        output = np.zeros((target_width, target_height, 3), dtype=np.uint8)
 
         with Progress(
             SpinnerColumn(),
@@ -235,8 +234,8 @@ def bilinear_interpolation(
             y_scale_factor = height / target_height
 
 
-            for y in range(target_height):
-                for x in range(target_width):
+            for y in range(target_height - 1):
+                for x in range(target_width - 1):
                     xOrigin = x * x_scale_factor
                     yOrigin = y * y_scale_factor
 
@@ -251,11 +250,11 @@ def bilinear_interpolation(
                     beta = yOrigin - y1
 
                     for z in range(dimension):
-                        output[y,x,z] = (
-                            (1-alpha)(1-beta)(input_img[y1,x1,z]) 
-                            + alpha(x1)(1-beta)(input_img[y1,x2,z]) 
-                            + (alpha*beta)(y1,x1,z)
-                            + (1-alpha)(beta)(y2,x1,z)
+                        output[y,x,z] = np.uint8(
+                            ((1 - alpha) * (1 - beta) * input_img[y1, x1, z]) 
+                            + (alpha * (1 - beta) * input_img[y1, x2, z]) 
+                            + ((alpha * beta) * input_img[y2, x2, z])
+                            + ((1 - alpha) * beta * input_img[y2, x1, z])
                         )
 
         result_img_pil = Image.fromarray(output)
