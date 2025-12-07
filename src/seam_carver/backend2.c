@@ -205,7 +205,7 @@ static Enpixel* get_seam(
 }
 
 static void add_seam(
-    size_t h, size_t w, size_t current_width, 
+    size_t h, size_t w, size_t functional_width,  
     Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
     /**
      * Removes the pixels at the coordinates specified by the Enpixels in the
@@ -217,7 +217,7 @@ static void add_seam(
         size_t x = pixel.x;
 
         // Shift all pixels from (x + 1) to (x + 2), copy to the right of the seam.
-        size_t num_pixels_to_move = current_width - x; //check if these numbers are right
+        size_t num_pixels_to_move = functional_width - x; //check if these numbers are right
 
         if (num_pixels_to_move > 0) {
             // Pointer to the destination (the current width, one pixel larger than the image)
@@ -235,12 +235,20 @@ static void add_seam(
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
 
-            //interpolate(h, w, grayscale_matrix, rgb_matrix, x+1, y); //input the added pixel next to the seam
+            //color_grade(h, w, grayscale_matrix, rgb_matrix, x+1, y); //input the added pixel next to the seam
         }
     }
 }
 
-void interpolate(size_t h, size_t w, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
+void artificial_energy(size_t h, size_t w, size_t current_width, 
+    int* grayscale_matrix, Enpixel* energy_matrix){
+        for (size_t i = 0; i < h; i++) {
+            for (size_t j = 0; j < current_width; j++) { 
+            }
+        }
+}
+
+void color_grade(size_t h, size_t w, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
         size_t idx = RGB_IDX(y, x, w); //the new midpoint value
         size_t idx1 = RGB_IDX(y, x-1, w); //the original seam pixel
         size_t idx2 = RGB_IDX(y, x+1, w); //the original pixel to the right of the seam
@@ -261,7 +269,7 @@ void interpolate(size_t h, size_t w, int* grayscale_matrix, uint8_t* rgb_matrix,
 
 /*TODO CREATE SEAM*/
 int expand(
-    size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) {
+    size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t functional_width) {
     /**
      * Carves out low-energy seams from an image matrix until its width
      * reaches `target_width`.
@@ -284,7 +292,8 @@ int expand(
     }
     convert_rgb_to_grayscale(h, w, rgb_matrix, grayscale_matrix);
 
-    while (current_width > target_width) {
+
+    while (functional_width < target_width) {
         // Matrix of energy pixels that will determine seam
         Enpixel* energy_matrix = calloc(h * current_width, sizeof(Enpixel));
         if (energy_matrix == NULL) {
@@ -306,10 +315,10 @@ int expand(
         }
         // Remove the seam from the grayscale matrix and the original matrix
         add_seam(
-            h , w, current_width, seam, grayscale_matrix, rgb_matrix);
+            h , w, functional_width, seam, grayscale_matrix, rgb_matrix);
         free(energy_matrix);
         free(seam);
-        current_width++; //TODO check placement
+        functional_width++; //TODO check placement
     }
 
     free(grayscale_matrix);
