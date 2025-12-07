@@ -220,6 +220,8 @@ def bilinear_interpolation(
         
         start_time = time.time()
 
+        output = np.zeros(target_width, target_height)  # type: ignore
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -232,7 +234,6 @@ def bilinear_interpolation(
             x_scale_factor = width / target_width
             y_scale_factor = height / target_height
 
-            output = np.zeros(target_width, target_height)  # type: ignore
 
             for y in range(target_height):
                 for x in range(target_width):
@@ -272,8 +273,6 @@ def bilinear_interpolation(
 
     except Exception as e:
         print(f"[red]Error:[/red] Unable to adjust image (BLI): {e}")
-
-    return output
 
 def main():
     app()
