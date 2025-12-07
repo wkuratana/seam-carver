@@ -204,7 +204,6 @@ static Enpixel* get_seam(
     return seam;
 }
 
-/*TODO CREATE SEAM*/
 static void add_seam(
     size_t h, size_t w, size_t current_width, 
     Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
@@ -242,18 +241,22 @@ static void add_seam(
 }
 
 void interpolate(size_t h, size_t w, int* grayscale_matrix, uint8_t* rgb_matrix, int x, int y){
-        size_t idx = RGB_IDX(x, y, w); //the new midpoint value
-        size_t idx1 = RGB_IDX(x-1, y, w); //the original seam pixel
-        size_t idx2 = RGB_IDX(x+1, y, w); //the original pixel to the right of the seam
+        size_t idx = RGB_IDX(y, x, w); //the new midpoint value
+        size_t idx1 = RGB_IDX(y, x-1, w); //the original seam pixel
+        size_t idx2 = RGB_IDX(y, x+1, w); //the original pixel to the right of the seam
 
-        int r = rgb_matrix[idx1+0];
+        int r = (rgb_matrix[idx1+0] + rgb_matrix[idx+0] + rgb_matrix[idx2+0])/3;
+        int g = (rgb_matrix[idx1+1] + rgb_matrix[idx+1] + rgb_matrix[idx2+1])/3;
+        int b = (rgb_matrix[idx1+2] + rgb_matrix[idx+2] + rgb_matrix[idx2+2])/3;
+
+        rgb_matrix[RGB_IDX(y,x,w)] = r,g,b;
+        //TODO figure out how to allocate the memory to the right spot??
 
         grayscale_matrix[IDX(x, y, w)] = (int)(
-                0.299 * rgb_matrix[idx + 0] + // R
-                0.587 * rgb_matrix[idx + 1] + // G
-                0.114 * rgb_matrix[idx + 2]   // B
+                0.299 * r + // R
+                0.587 * g + // G
+                0.114 * b   // B
             );
-        //how to 
 }
 
 /*TODO CREATE SEAM*/

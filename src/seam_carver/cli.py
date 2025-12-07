@@ -7,6 +7,7 @@ from PIL import Image
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from .wrapper import c_carve  # type: ignore
+# from .wrapper import c_expand  # type: ignore
 
 
 app = typer.Typer(add_completion=False)
@@ -59,7 +60,30 @@ def adjust(
                 
             elif width < target_width:
                 # TODO: Call expand width function once implemented
-                pass  # Temporary
+                # pass  # Temporary
+                # Implemented in the same manner as the above function
+                start_time = time.time()
+                
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    TimeElapsedColumn(),
+                    transient=True,
+                ) as progress:
+                    progress.add_task(description="Adjusting...", total=None)
+                    result_img = c_expand(input_img, target_width)
+                
+                elapsed = time.time() - start_time
+                
+                result_img_pil = Image.fromarray(result_img)
+                result_img_pil.save(output_file)
+
+                minutes = int(elapsed // 60)
+                seconds = int(round(elapsed % 60))
+
+                print(
+                    f"Adjusted image successfully saved to [yellow]{output_file}[/yellow]"
+                    f" in {minutes:02d}:{seconds:02d}")
 
         else:
             print(
