@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 
 
 /* Indexing Macros */
@@ -240,10 +241,12 @@ static void add_seam(
     }
 }
 
-void artificial_energy(size_t h, size_t w, size_t current_width, 
-    int* grayscale_matrix, Enpixel* energy_matrix){
-        for (size_t i = 0; i < h; i++) {
-            for (size_t j = 0; j < current_width; j++) { 
+void artificial_energy(size_t h, size_t w, size_t current_width, size_t functional_width, Enpixel* energy_matrix){
+        for (size_t i = functional_width; i < w; i++) {
+            for (size_t j = 0; j < h; j++) { 
+                Enpixel* current_pixel_ptr = &energy_matrix[IDX(
+                j, i, current_width)];
+                current_pixel_ptr->energy= DBL_MAX;
             }
         }
 }
@@ -304,6 +307,8 @@ int expand(
         }
         energy_matrix = set_energy_matrix(
             h, w, current_width, grayscale_matrix, energy_matrix);
+
+        artificial_energy(h, w, current_width, functional_width, energy_matrix);
         // Seam to carve from image
         Enpixel* seam = get_seam(h, current_width, energy_matrix);
         if (seam == NULL) {
