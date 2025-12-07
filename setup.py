@@ -1,8 +1,8 @@
 # Imports
 import numpy
 import os
-from setuptools import setup, Extension
-from Cython.Build import cythonize
+from setuptools import setup, Extension  # type: ignore
+from Cython.Build import cythonize  # type: ignore
 
 
 extensions = [

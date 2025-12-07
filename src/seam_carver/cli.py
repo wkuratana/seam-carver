@@ -234,8 +234,8 @@ def bilinear_interpolation(
             y_scale_factor = height / target_height
 
 
-            for y in range(target_height - 1):
-                for x in range(target_width - 1):
+            for y in range(target_height):
+                for x in range(target_width):
                     xOrigin = x * x_scale_factor
                     yOrigin = y * y_scale_factor
 

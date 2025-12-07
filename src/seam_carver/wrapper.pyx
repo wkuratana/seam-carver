@@ -8,7 +8,7 @@ cdef extern from "backend.h":
     int carve(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
 
 cdef extern from "backend2.h":
-    int expand(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width) nogil
+    int expand(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t functional_width) nogil
 
 def _validate_image_type(image):
     """Raises error if image is the wrong type."""
@@ -72,7 +72,8 @@ def c_expand(image, int target_width):
     if target_width <= image.shape[1]:
         raise ValueError("Target width must be larger than current width.")
 
-    pad_width = target_width - image.shape[1]
+    og_width = image.shape[1]
+    pad_width = target_width - og_width
     pad_width_right = ((0, 0), (0, pad_width), (0, 0))
     image = np.pad(image, pad_width=pad_width_right, mode='constant', constant_values=0)
 
@@ -86,13 +87,14 @@ def c_expand(image, int target_width):
     cdef size_t w = img_view.shape[1]
     cdef uint8_t* img_ptr = <uint8_t*>&img_view[0, 0, 0]
     cdef size_t tw = <size_t>target_width
+    cdef size_t fw = <size_t>og_width
    
     cdef int result
     
     # Release GIL during the C function call
     # (Needed for time elapsed counter in CLI)
     with nogil:
-        result = expand(h, w, img_ptr, tw)
+        result = expand(h, w, img_ptr, tw, fw)
     
     if result != 0:
         raise RuntimeError("C function 'carve()' failed.")
