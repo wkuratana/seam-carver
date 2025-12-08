@@ -218,11 +218,11 @@ static void add_seam(
         size_t x = pixel.x;
 
         // Shift all pixels from (x + 1) to (x + 2), copy to the right of the seam.
-        size_t num_pixels_to_move = functional_width - x; //check if these numbers are right
+        size_t num_pixels_to_move = functional_width - x -1; //check if these numbers are right
 
         if (num_pixels_to_move > 0) {
             // Pointer to the destination (the current width, one pixel larger than the image)
-            int* gray_dest = &grayscale_matrix[IDX(y, x+1, w)];
+            int* gray_dest = &grayscale_matrix[IDX(y, x + 1, w)];
             // Pointer to the source (the last pixel)
             int* gray_src = &grayscale_matrix[IDX(y, x, w)];
             // Move the pixels over by one to the right, copying over the seam.
@@ -231,7 +231,7 @@ static void add_seam(
                 gray_dest, gray_src, num_pixels_to_move * sizeof(int));   
             printf(" \n moved first memory ");
                 
-            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x+1, w)];
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x + 1, w)];
             uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x, w)];
 
             // (num_pixels_to_move * 3) is the number of bytes
