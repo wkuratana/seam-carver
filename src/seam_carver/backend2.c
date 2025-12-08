@@ -222,19 +222,22 @@ static void add_seam(
 
         if (num_pixels_to_move > 0) {
             // Pointer to the destination (the current width, one pixel larger than the image)
-            int* gray_dest = &grayscale_matrix[IDX(y, x+2, w)];
+            int* gray_dest = &grayscale_matrix[IDX(y, x+1, w)];
             // Pointer to the source (the last pixel)
-            int* gray_src = &grayscale_matrix[IDX(y, x+1, w)];
+            int* gray_src = &grayscale_matrix[IDX(y, x, w)];
             // Move the pixels over by one to the right, copying over the seam.
+            printf(" variables ");
             memmove(
                 gray_dest, gray_src, num_pixels_to_move * sizeof(int));   
+            printf(" \n moved first memory ");
                 
-            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x+2, w)];
-            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x+1, w)];
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x+1, w)];
+            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x, w)];
 
             // (num_pixels_to_move * 3) is the number of bytes
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
+            printf(" \n moved second memory ");
 
             //color_grade(h, w, grayscale_matrix, rgb_matrix, x+1, y); //input the added pixel next to the seam
         }
@@ -295,6 +298,8 @@ int expand(
     }
     convert_rgb_to_grayscale(h, w, rgb_matrix, grayscale_matrix);
 
+    printf("made it past the greyscale");
+
 
     while (functional_width < target_width) {
         // Matrix of energy pixels that will determine seam
@@ -307,8 +312,11 @@ int expand(
         }
         energy_matrix = set_energy_matrix(
             h, w, current_width, grayscale_matrix, energy_matrix);
+        printf("set energy matrix");
+
 
         artificial_energy(h, w, current_width, functional_width, energy_matrix);
+        printf("set artificial energy");
         // Seam to carve from image
         Enpixel* seam = get_seam(h, current_width, energy_matrix);
         if (seam == NULL) {
@@ -318,12 +326,15 @@ int expand(
             free(energy_matrix);
             return -1;
         }
+        printf("gets seam");
         // Remove the seam from the grayscale matrix and the original matrix
         add_seam(
             h , w, functional_width, seam, grayscale_matrix, rgb_matrix);
+        printf("adds seam");
         free(energy_matrix);
         free(seam);
         functional_width++; //TODO check placement
+        printf("fwidth incremented");
     }
 
     free(grayscale_matrix);

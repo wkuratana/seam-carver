@@ -31,6 +31,7 @@ If you are ever unsure of what arguments to pass, type `adjust --help`.
 ### Example Usage
 ```
 seam-carver adjust assets/surfer.jpg assets/narrow_surfer.jpg 1600
+seam-carver adjust assets/surfer.jpg assets/wide_surfer.jpg 2200
 ```
 
 ### Audio
