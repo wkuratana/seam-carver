@@ -1,4 +1,5 @@
 /* Imports */
+#include <float.h>
 #include <math.h> 
 #include <stdio.h>
 #include <stdint.h>
@@ -204,6 +205,51 @@ static Enpixel* get_seam(
     return seam;
 }
 
+// static void color_grade(
+//     size_t h, size_t w, int* grayscale_matrix, 
+//     uint8_t* rgb_matrix, int x, int y) {
+//         /**
+//          * 
+//          */
+//         int safe_x_left = clamp(x - 1, 0, w - 1);
+//         int safe_x_right = clamp(x + 1, 0, w - 1);
+
+//         size_t idx = RGB_IDX(y, x, w); 
+//         size_t idx1 = RGB_IDX(y, safe_x_left, w); 
+//         size_t idx2 = RGB_IDX(y, safe_x_right, w);
+
+//         int r = (rgb_matrix[idx1+0] + rgb_matrix[idx+0] + rgb_matrix[idx2+0])/3;
+//         int g = (rgb_matrix[idx1+1] + rgb_matrix[idx+1] + rgb_matrix[idx2+1])/3;
+//         int b = (rgb_matrix[idx1+2] + rgb_matrix[idx+2] + rgb_matrix[idx2+2])/3;
+
+//         rgb_matrix[idx + 0] = (uint8_t)r;
+//         rgb_matrix[idx + 1] = (uint8_t)g;
+//         rgb_matrix[idx + 2] = (uint8_t)b;
+        
+//         grayscale_matrix[IDX(y, x, w)] = (int)(
+//                 0.299 * r + // R
+//                 0.587 * g + // G
+//                 0.114 * b   // B
+//             );
+// }
+
+static void artificial_energy(
+    size_t h, size_t w, size_t current_width, size_t functional_width, 
+    Enpixel* energy_matrix){
+    /**
+     * Artificially inflates the energy values of the pixels on the image
+     * padding so they are never a part of the weakest seams (and thus
+     * always overwritten by seam duplication).
+     */
+    for (size_t i = 0; i < h; i++) { 
+        for (size_t j = functional_width; j < current_width; j++) {
+            Enpixel* current_pixel_ptr = (
+                &energy_matrix[IDX(i, j, current_width)]);
+            current_pixel_ptr->energy= DBL_MAX;
+            }
+        }
+}
+
 static void remove_seam(
     size_t h, size_t w, size_t current_width, 
     Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
@@ -233,6 +279,41 @@ static void remove_seam(
             // (num_pixels_to_move * 3) is the number of bytes
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
+        }
+    }
+}
+
+static void add_seam(
+    size_t h, size_t w, size_t functional_width,  
+    Enpixel* seam, int* grayscale_matrix, uint8_t* rgb_matrix) {
+    /**
+     * Duplicates the pixels at the coordinates specified by the Enpixels in
+     * the seam (and all pixels to the right of the seam) to the right.
+     */
+    for (size_t i = 0; i < h; i++) {
+        Enpixel pixel = seam[i];
+        size_t y = pixel.y;
+        size_t x = pixel.x;
+
+        size_t num_pixels_to_move = functional_width - x;
+
+        if (num_pixels_to_move > 0) {
+            // Pointer to the destination
+            int* gray_dest = &grayscale_matrix[IDX(y, x + 1, w)];
+            // Pointer to the source
+            int* gray_src = &grayscale_matrix[IDX(y, x, w)];
+            // Move the pixels over by one to the right, copying over the seam.
+            memmove(
+                gray_dest, gray_src, num_pixels_to_move * sizeof(int));   
+                
+            uint8_t* rgb_dest = &rgb_matrix[RGB_IDX(y, x + 1, w)];
+            uint8_t* rgb_src = &rgb_matrix[RGB_IDX(y, x, w)];
+
+            // (num_pixels_to_move * 3) is the number of bytes
+            memmove(
+                rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
+
+            // color_grade(h, w, grayscale_matrix, rgb_matrix, x + 1, y);        
         }
     }
 }
@@ -287,6 +368,67 @@ int carve(
         free(energy_matrix);
         free(seam);
         current_width--;
+    }
+
+    free(grayscale_matrix);
+
+    return 0;
+}
+
+int expand(
+    size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, 
+    size_t functional_width) {
+    /**
+     * Duplicates low-energy seams from an image matrix until its width
+     * reaches `target_width`.
+     * 
+     * If used with a Cython script, any image passed will point directly
+     * to the NumPy array's data buffer. This functoin shuffles the data
+     * around inside said buffer.
+     * 
+     * This function also depends on padding being added to the original
+     * image before processing, so memory is properly allocated.
+     * 
+     * Note that `w` is original width.
+     */
+    size_t current_width = w;
+
+    int* grayscale_matrix = calloc(h * w, sizeof(int));
+    if (grayscale_matrix == NULL) {
+        perror("Failed to allocate grayscale_matrix.");
+
+        return -1;
+    }
+    convert_rgb_to_grayscale(h, w, rgb_matrix, grayscale_matrix);
+
+    while (functional_width < target_width) {
+        // Matrix of energy pixels that will determine seam
+        Enpixel* energy_matrix = calloc(h * current_width, sizeof(Enpixel));
+        if (energy_matrix == NULL) {
+            perror("Failed to allocate energy_matrix.");
+            free(grayscale_matrix);
+
+            return -1;
+        }
+        energy_matrix = set_energy_matrix(
+            h, w, current_width, grayscale_matrix, energy_matrix);
+        // Add high energy to the padding,
+        artificial_energy(h, w, current_width, functional_width, energy_matrix);
+        // Seam to carve from image
+        Enpixel* seam = get_seam(h, current_width, energy_matrix);
+        if (seam == NULL) {
+            perror("Failed to allocate seam.");
+
+            free(grayscale_matrix);
+            free(energy_matrix);
+            return -1;
+        }
+        // Remove the seam from the grayscale matrix and the original matrix
+        add_seam(
+            h , w, functional_width, seam, grayscale_matrix, rgb_matrix);
+        free(energy_matrix);
+        free(seam);
+        functional_width++;
     }
 
     free(grayscale_matrix);

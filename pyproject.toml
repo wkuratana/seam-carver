@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "seam-carver"
-version = "0.0.5"
+version = "0.1.0"
 authors = [ 
     {name="Wren C. Kuratana", email="wren@wrenckuratana.com"}, 
     {name="Machiavelli Merkle-Ward", email="mmerklew@macalester.edu"} 

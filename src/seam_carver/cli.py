@@ -10,8 +10,6 @@ from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from .wrapper import c_carve  # type: ignore
 from .wrapper import c_expand  # type: ignore
-# from .BilinearInterpolation import bilinear_interpolation
-
 
 app = typer.Typer(add_completion=False)
 
@@ -136,10 +134,7 @@ def adjust_audio(
             if stft.shape[1] > target_frames:
                 result_img = c_carve(spectrogram_img, target_frames)
             elif stft.shape[1] < target_frames:
-                # result_img = c_expand(spectrogram_img, target_frames)
-                return 
-            else:
-                result_img = spectrogram_img
+                result_img = c_expand(spectrogram_img, target_frames) 
 
             progress.update(
                 task, description="Reconstructing audio...")
@@ -149,29 +144,13 @@ def adjust_audio(
             carved_magnitude = (
                 result_img[:, :, 0].astype(np.float32) / 255.0) * max_val
 
-            # Phase reconstruction
-            x_old = np.linspace(0, 1, stft.shape[1])
-            x_new = np.linspace(0, 1, target_frames)
-            
-            # Interpolate real and imaginary parts separately
-            stft_real_stretched = np.array(
-                [np.interp(x_new, x_old, row) for row in np.real(stft)])
-            stft_imag_stretched = np.array(
-                [np.interp(x_new, x_old, row) for row in np.imag(stft)])
-            # Then combine to get the new phase angles
-            # Use interpolation to stretch/squish original timing to fit the new length
-            carved_phase = np.angle(
-                stft_real_stretched + 1j * stft_imag_stretched)
-            
-            # Combine magnitude and phase 
-            # Magnitude * phase = complete sound
-            carved_stft = carved_magnitude * np.exp(1j * carved_phase)
-
-            # Inverse STFT
-            carved_time_series = librosa.istft(
-                carved_stft, 
+            # Reconstruct audio from magnitude using Griffin-Lim
+            # This estimates the phase iteratively from the spectrogram alone.
+            carved_time_series = librosa.griffinlim(
+                carved_magnitude, 
+                n_iter=32,       # Higher iterations = better quality but slower
                 hop_length=512, 
-                length=int(target_duration * sample_rate)
+                n_fft=2048
             )
         
         sf.write(output_file, carved_time_series, sample_rate)
@@ -209,6 +188,8 @@ def bilinear_interpolation(
 
         # Open the input file
         input_img_pil = Image.open(input_file)
+        # Convert to RGB to ensure 3 dimensions (handles Grayscale/RGBA safely)
+        input_img_pil = input_img_pil.convert("RGB") 
         input_img = np.array(input_img_pil)
         height, width, dimension = input_img.shape
 
@@ -219,7 +200,7 @@ def bilinear_interpolation(
         
         start_time = time.time()
 
-        output = np.zeros((target_width, target_height, 3), dtype=np.uint8)
+        output = np.zeros((target_height, target_width, dimension), dtype=np.uint8)
 
         with Progress(
             SpinnerColumn(),
@@ -250,12 +231,13 @@ def bilinear_interpolation(
                     beta = yOrigin - y1
 
                     for z in range(dimension):
-                        output[y,x,z] = np.uint8(
+                        value = (
                             ((1 - alpha) * (1 - beta) * input_img[y1, x1, z]) 
                             + (alpha * (1 - beta) * input_img[y1, x2, z]) 
                             + ((alpha * beta) * input_img[y2, x2, z])
                             + ((1 - alpha) * beta * input_img[y2, x1, z])
                         )
+                        output[y,x,z] = int(value + 0.5)
 
         result_img_pil = Image.fromarray(output)
         result_img_pil.save(output_file)

@@ -1,8 +1,0 @@
-#ifndef BACKEND2_H
-#define BACKEND2_H
-#include <stdint.h>
-#include <stdlib.h>
-
-int expand(size_t h, size_t w, uint8_t* rgb_matrix, size_t target_width, size_t functional_wdith);
-
-#endif
