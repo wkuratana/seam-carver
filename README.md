@@ -29,10 +29,19 @@ Replace `<target_width>` with the exact pixel width you would like to change the
 If you are ever unsure of what arguments to pass, type `adjust --help`.
 
 ### Example Usage
+#### Original image:
+Output:
+![Narrowed surfer image](assets/surfer.jpg)
 ```
 seam-carver adjust assets/surfer.jpg assets/narrow_surfer.jpg 1600
+```
+#### Output:
+![Narrowed surfer image](assets/narrow_surfer.jpg)
+```
 seam-carver adjust assets/surfer.jpg assets/wide_surfer.jpg 2200
 ```
+#### Output:
+![Widened surfer image](assets/wide_surfer.jpg)
 
 ### Audio
 
@@ -41,4 +50,4 @@ Adjust audio with:
 seam-carver adjust-audio <input_file> <output_file> <target_length>
 ```
 
-Ensure `<input_file>` is a `.wav` file, and `<target_length>` is in seconds.
+Ensure `<input_file>` is a `.wav` file (other file types may be supported, but are untested), and `<target_length>` is in seconds.

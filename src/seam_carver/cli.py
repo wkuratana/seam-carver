@@ -145,10 +145,10 @@ def adjust_audio(
                 result_img[:, :, 0].astype(np.float32) / 255.0) * max_val
 
             # Reconstruct audio from magnitude using Griffin-Lim
-            # This estimates the phase iteratively from the spectrogram alone.
+            # Estimates the phase iteratively from the spectrogram
             carved_time_series = librosa.griffinlim(
                 carved_magnitude, 
-                n_iter=32,       # Higher iterations = better quality but slower
+                n_iter=32,
                 hop_length=512, 
                 n_fft=2048
             )
