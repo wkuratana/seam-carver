@@ -4,7 +4,7 @@ This project implements seam carving, inverted seam carving (image widening), au
 
 ## What is Seam Carving?
 
-![Seam carving process GIF](https://ben-tanen.com/projects/seam-carving/img/seam_animate.GIF)  
+![Seam carving process GIF](assets/seam_carver.gif)  
 *GIF credit to Ben Tanen: https://ben-tanen.com/projects/2020/10/08/seam-carving-pt1.html* 
 
 Seam carving is a content-aware image resizing algorithm which relies on calculating paths of least importance—"seams"—in an image for removal or insertion.
