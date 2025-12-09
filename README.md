@@ -25,10 +25,19 @@ This project also comes with a Python implementation of bilinear interpolation. 
 
 ## How to Install
 
+*To build this project, you must have a C compiler installed (e.g., GCC on Linux/macOS or MSVC on Windows) and Python 3.x.*
+
 This project can be installed using `pip`:
 
 ```
 pip install git+https://github.com/wkuratana/seam-carver
+```
+
+### Development
+If you have cloned the repository, you can install the project locally with:
+
+```
+cd seam-carver; pip install -e .
 ```
 
 # How to Use
@@ -47,7 +56,7 @@ Replace `<target_width>` with the exact pixel width you would like to change the
 
 > [!NOTE]  
 > If the target width is smaller than the width of the input file, the image will be carved (width will be reduced).
-> If the target width is larger, the image will be widened (WIP).
+> If the target width is larger, the image will be widened.
 
 If you are ever unsure of what arguments to pass, type `adjust --help`.
 
@@ -72,10 +81,10 @@ seam-carver adjust assets/surfer.jpg assets/wide_surfer.jpg 2200
 
 Adjust audio with:
 ```
-seam-carver adjust-audio <input_file> <output_file> <target_length>
+seam-carver adjust-audio <input_file> <output_file> <target_duration>
 ```
 
-Ensure `<input_file>` is a `.wav` file (other file types may be supported, but are untested), and `<target_length>` is in seconds.
+Ensure `<input_file>` is a `.wav` file (other file types may be supported, but are untested), and `<target_duration>` is in seconds (float).
 
 ## Bilinear Interpolation
 
@@ -91,3 +100,12 @@ seam-carver bilinear-interpolation assets/surfer.jpg assets/bli_narrow_surfer.jp
 ```
 ##### Output
 ![Distorted surfer image](assets/bli_narrow_surfer.jpg)
+
+# References
+
+Shai Avidan and Ariel Shamir. 2007. Seam carving for content-aware image resizing. In ACM SIGGRAPH 2007 papers (SIGGRAPH '07). Association for Computing Machinery, New York, NY, USA, 10–es. https://doi.org/10.1145/1275808.1276390
+
+# Authors
+
+Wren C. Kuratana  
+Machiavelli Merkle-Ward
