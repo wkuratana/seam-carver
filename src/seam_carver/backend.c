@@ -205,33 +205,96 @@ static Enpixel* get_seam(
     return seam;
 }
 
-// static void color_grade(
-//     size_t h, size_t w, int* grayscale_matrix, 
-//     uint8_t* rgb_matrix, int x, int y) {
-//         /**
-//          * 
-//          */
-//         int safe_x_left = clamp(x - 1, 0, w - 1);
-//         int safe_x_right = clamp(x + 1, 0, w - 1);
+static Enpixel* get_additive_seam(
+    size_t h, size_t current_width, Enpixel* energy_matrix) {
+    /**
+     * Returns an optimal seam (array) of pixels to be carved.
+     */
+    // Seam of energy pixels to be carved
 
-//         size_t idx = RGB_IDX(y, x, w); 
-//         size_t idx1 = RGB_IDX(y, safe_x_left, w); 
-//         size_t idx2 = RGB_IDX(y, safe_x_right, w);
+    Enpixel* seam = calloc(h, sizeof(Enpixel));
+    if (seam == NULL) {
+        perror("Failed to allocate seam.");
 
-//         int r = (rgb_matrix[idx1+0] + rgb_matrix[idx+0] + rgb_matrix[idx2+0])/3;
-//         int g = (rgb_matrix[idx1+1] + rgb_matrix[idx+1] + rgb_matrix[idx2+1])/3;
-//         int b = (rgb_matrix[idx1+2] + rgb_matrix[idx+2] + rgb_matrix[idx2+2])/3;
+        return NULL; 
+    }
 
-//         rgb_matrix[idx + 0] = (uint8_t)r;
-//         rgb_matrix[idx + 1] = (uint8_t)g;
-//         rgb_matrix[idx + 2] = (uint8_t)b;
-        
-//         grayscale_matrix[IDX(y, x, w)] = (int)(
-//                 0.299 * r + // R
-//                 0.587 * g + // G
-//                 0.114 * b   // B
-//             );
+    //Create array of the final row of Enpixels
+    struct Enpixel* options = (struct Enpixel*)malloc(h * sizeof(struct Enpixel*));
+    if (options == NULL) {
+        perror("Failed to allocate options Enpixel array.");
+        return NULL; 
+    }
+
+    for (size_t j = 1; j < current_width; j++) {
+        Enpixel* current = &energy_matrix[IDX(h - 1, j, current_width)];
+        options[j] = *current;
+    }
+
+    //Sort array and choose random number 0-4
+    int array_size = sizeof(options) / sizeof(struct Enpixel*);
+    // qsort(options, array_size, sizeof(Enpixel*), compare_enpixels);
+    int r = rand() % 5;
+
+    // Get weakest pixel of last row (containing lowest seam sum), randomized to one of the 5 weakest seams.
+    Enpixel* weakest = &energy_matrix[IDX(h - 1, r, current_width)]; 
+
+    //Find the seam!
+    Enpixel* current_seam_pixel_ptr = weakest;
+    seam[h - 1] = *current_seam_pixel_ptr; // Copy struct values into seam
+    for (size_t i = 1; i < h; i++) {
+        // Traverse up the chain using the stored pointer links
+        current_seam_pixel_ptr = current_seam_pixel_ptr->weakest_neighbor; 
+        seam[h - 1 - i] = *current_seam_pixel_ptr;
+    }
+
+    free(options);
+    return seam;
+}
+
+// int compare_enpixels(const void *a, const void *b){
+//     const Enpixel* first = (const Enpixel*)a;
+//     const Enpixel* second = (const Enpixel*)b;
+//     return (second->energy - first->energy);
+    // if(first->energy < second->energy){
+    //     return -1;
+    // }
+    // else if (first->energy > second->energy)
+    // {
+    //     return 1;
+    // }
+    // else {
+    //     return 0;
+    // }
 // }
+
+static void color_grade(
+    size_t h, size_t w, int* grayscale_matrix, 
+    uint8_t* rgb_matrix, int x, int y) {
+        /**
+         * 
+         */
+        int safe_x_left = clamp(x - 1, 0, w - 1);
+        int safe_x_right = clamp(x + 1, 0, w - 1);
+
+        size_t idx = RGB_IDX(y, x, w); 
+        size_t idx1 = RGB_IDX(y, safe_x_left, w); 
+        size_t idx2 = RGB_IDX(y, safe_x_right, w);
+
+        int r = (rgb_matrix[idx1+0] + rgb_matrix[idx+0] + rgb_matrix[idx2+0])/3;
+        int g = (rgb_matrix[idx1+1] + rgb_matrix[idx+1] + rgb_matrix[idx2+1])/3;
+        int b = (rgb_matrix[idx1+2] + rgb_matrix[idx+2] + rgb_matrix[idx2+2])/3;
+
+        rgb_matrix[idx + 0] = (uint8_t)r;
+        rgb_matrix[idx + 1] = (uint8_t)g;
+        rgb_matrix[idx + 2] = (uint8_t)b;
+        
+        grayscale_matrix[IDX(y, x, w)] = (int)(
+                0.299 * r + // R
+                0.587 * g + // G
+                0.114 * b   // B
+            );
+}
 
 static void artificial_energy(
     size_t h, size_t w, size_t current_width, size_t functional_width, 
@@ -313,7 +376,7 @@ static void add_seam(
             memmove(
                 rgb_dest, rgb_src, num_pixels_to_move * 3 * sizeof(uint8_t));
 
-            // color_grade(h, w, grayscale_matrix, rgb_matrix, x + 1, y);        
+            color_grade(h, w, grayscale_matrix, rgb_matrix, x + 1, y);        
         }
     }
 }
@@ -416,6 +479,8 @@ int expand(
         artificial_energy(h, w, current_width, functional_width, energy_matrix);
         // Seam to carve from image
         Enpixel* seam = get_seam(h, current_width, energy_matrix);
+
+        // Enpixel* seam = get_seam(h, current_width, energy_matrix);
         if (seam == NULL) {
             perror("Failed to allocate seam.");
 
@@ -423,7 +488,7 @@ int expand(
             free(energy_matrix);
             return -1;
         }
-        // Remove the seam from the grayscale matrix and the original matrix
+        // Add the seam to the grayscale matrix and the original matrix
         add_seam(
             h , w, functional_width, seam, grayscale_matrix, rgb_matrix);
         free(energy_matrix);
