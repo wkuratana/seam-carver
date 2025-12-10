@@ -269,6 +269,10 @@ static Enpixel* get_additive_seam(
 // }
 
 static void color_grade(
+    /**
+     * Finds a median value between two given colors, to smooth the transition between the color of pixels when a seam is added,
+     * in order to create a new seam with the median colors
+     */
     size_t h, size_t w, int* grayscale_matrix, 
     uint8_t* rgb_matrix, int x, int y) {
         /**

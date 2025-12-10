@@ -11,6 +11,9 @@ Seam carving is a content-aware image resizing algorithm which relies on calcula
 
 The algorithm contrasts with alternative resizing methods, which may stretch and distort important features of an image.
 
+## What is Seam Expansion?
+Seam expansion is the opposite of the seam-carving process; instead of removing the weakest seam, it creates a new seam of pixels with a median color between the seam and its neighboring rightmost pixels, expanding the image to the desired width.
+
 ## What is Audio Seam Carving?
 
 Seam carving is an image resizing algorithm that was first developed in 2007 by Shai Avidan and Ariel Shamir. As it is a visual algorithm, most innovations have come in the form of refining how image seams or "energy" are defined.
@@ -56,7 +59,7 @@ Replace `<target_width>` with the exact pixel width you would like to change the
 
 > [!NOTE]  
 > If the target width is smaller than the width of the input file, the image will be carved (width will be reduced).
-> If the target width is larger, the image will be widened.
+> If the target width is larger, the image will be widened with expansion (width will be increased).
 
 If you are ever unsure of what arguments to pass, type `adjust --help`.
 
@@ -75,7 +78,7 @@ seam-carver adjust assets/surfer.jpg assets/narrow_surfer.jpg 1600
 seam-carver adjust assets/surfer.jpg assets/wide_surfer.jpg 2200
 ```
 ##### Output
-![Widened surfer image](assets/wide_surfer.jpg)
+![Widened surfer image](assets/wiiide_surfer.jpg)
 
 ## Audio
 
