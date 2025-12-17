@@ -205,12 +205,30 @@ static Enpixel* get_seam(
     return seam;
 }
 
+int compare_enpixels(const void *a, const void *b){
+    struct Enpixel *first = (Enpixel*)a;
+    struct Enpixel *second = (Enpixel*)b;
+    return (second->energy - first->energy);
+    if(first->energy < second->energy){
+        return -1;
+    }
+    else if (first->energy > second->energy)
+    {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 static Enpixel* get_additive_seam(
-    size_t h, size_t current_width, Enpixel* energy_matrix) {
+    size_t h, size_t current_width, Enpixel* energy_matrix, size_t pixels_changed) {
     /**
      * Returns an optimal seam (array) of pixels to be carved.
      */
     // Seam of energy pixels to be carved
+
+    //TODO NEEDS TO TAKE IN THE NUMBER OF PIXELS CHANGED
 
     Enpixel* seam = calloc(h, sizeof(Enpixel));
     if (seam == NULL) {
@@ -220,24 +238,28 @@ static Enpixel* get_additive_seam(
     }
 
     //Create array of the final row of Enpixels
-    struct Enpixel* options = (struct Enpixel*)malloc(h * sizeof(struct Enpixel*));
+    struct Enpixel* options = calloc(current_width, sizeof(Enpixel));
     if (options == NULL) {
         perror("Failed to allocate options Enpixel array.");
         return NULL; 
     }
-
+    int n = 0;
     for (size_t j = 1; j < current_width; j++) {
         Enpixel* current = &energy_matrix[IDX(h - 1, j, current_width)];
-        options[j] = *current;
+        options[j-1] = *current;
+        n++;
     }
 
-    //Sort array and choose random number 0-4
-    int array_size = sizeof(options) / sizeof(struct Enpixel*);
-    // qsort(options, array_size, sizeof(Enpixel*), compare_enpixels);
+    qsort(options, n, sizeof(Enpixel), compare_enpixels);
     int r = rand() % 5;
 
+    int best_weakest = 0;
+    if(pixels_changed>0){
+        best_weakest = (pixels_changed*2) - 1;
+    }
+
     // Get weakest pixel of last row (containing lowest seam sum), randomized to one of the 5 weakest seams.
-    Enpixel* weakest = &energy_matrix[IDX(h - 1, r, current_width)]; 
+    Enpixel* weakest = &energy_matrix[IDX(h - 1, best_weakest, current_width)]; 
 
     //Find the seam!
     Enpixel* current_seam_pixel_ptr = weakest;
@@ -252,21 +274,6 @@ static Enpixel* get_additive_seam(
     return seam;
 }
 
-// int compare_enpixels(const void *a, const void *b){
-//     const Enpixel* first = (const Enpixel*)a;
-//     const Enpixel* second = (const Enpixel*)b;
-//     return (second->energy - first->energy);
-    // if(first->energy < second->energy){
-    //     return -1;
-    // }
-    // else if (first->energy > second->energy)
-    // {
-    //     return 1;
-    // }
-    // else {
-    //     return 0;
-    // }
-// }
 
 static void color_grade(
     /**
@@ -468,6 +475,8 @@ int expand(
     }
     convert_rgb_to_grayscale(h, w, rgb_matrix, grayscale_matrix);
 
+    int pixels_changed = 0;
+
     while (functional_width < target_width) {
         // Matrix of energy pixels that will determine seam
         Enpixel* energy_matrix = calloc(h * current_width, sizeof(Enpixel));
@@ -482,9 +491,9 @@ int expand(
         // Add high energy to the padding,
         artificial_energy(h, w, current_width, functional_width, energy_matrix);
         // Seam to carve from image
-        Enpixel* seam = get_seam(h, current_width, energy_matrix);
+        Enpixel* seam = get_additive_seam(h, current_width, energy_matrix, pixels_changed);
+        //Enpixel* seam = get_seam(h, current_width, energy_matrix);
 
-        // Enpixel* seam = get_seam(h, current_width, energy_matrix);
         if (seam == NULL) {
             perror("Failed to allocate seam.");
 
@@ -498,6 +507,7 @@ int expand(
         free(energy_matrix);
         free(seam);
         functional_width++;
+        pixels_changed++;
     }
 
     free(grayscale_matrix);
